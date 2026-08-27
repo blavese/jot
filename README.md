@@ -2,6 +2,8 @@
 
 A minimal notepad for Windows. Opens to a blank page, gets out of the way.
 
+**[Download the latest release](https://github.com/blavese/jot/releases/latest)**, run `Jot.exe`. No install, no .NET setup, the runtime is bundled in.
+
 ## the point of it
 
 Whatever's in the editor when you close the window is still there when you open it again. Not saved to a file, just remembered, the way a real notepad on your desk doesn't erase itself when you close the notebook. Actually saving to a `.txt` file is still there when you want it (Ctrl+S), this is a safety net underneath that.
