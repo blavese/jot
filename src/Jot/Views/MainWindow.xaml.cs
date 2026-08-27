@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Shell;
 using Jot.Services;
@@ -23,9 +24,42 @@ public partial class MainWindow : Window
         {
             Editor.CaretIndex = Math.Min(vm.RestoredCaretIndex, Editor.Text.Length);
             Editor.Focus();
+            UpdateCaretPosition();
         };
 
+        Editor.SelectionChanged += (_, _) => UpdateCaretPosition();
+        Editor.TextChanged += (_, _) => UpdateCaretPosition();
+
         PreviewKeyDown += MainWindow_PreviewKeyDown;
+    }
+
+    private static void OpenMenu(object sender)
+    {
+        var button = (Button)sender;
+        if (button.ContextMenu == null) return;
+        button.ContextMenu.PlacementTarget = button;
+        button.ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+        button.ContextMenu.IsOpen = true;
+    }
+
+    private void FileMenu_Click(object sender, RoutedEventArgs e) => OpenMenu(sender);
+    private void EditMenu_Click(object sender, RoutedEventArgs e) => OpenMenu(sender);
+
+    private void Exit_Click(object sender, RoutedEventArgs e) => Close();
+
+    private void Undo_Click(object sender, RoutedEventArgs e) { if (Editor.CanUndo) Editor.Undo(); }
+    private void Redo_Click(object sender, RoutedEventArgs e) { if (Editor.CanRedo) Editor.Redo(); }
+    private void Cut_Click(object sender, RoutedEventArgs e) => Editor.Cut();
+    private void Copy_Click(object sender, RoutedEventArgs e) => Editor.Copy();
+    private void Paste_Click(object sender, RoutedEventArgs e) => Editor.Paste();
+    private void SelectAll_Click(object sender, RoutedEventArgs e) => Editor.SelectAll();
+
+    private void UpdateCaretPosition()
+    {
+        var line = Editor.GetLineIndexFromCharacterIndex(Editor.CaretIndex) + 1;
+        var lineStart = Editor.GetCharacterIndexFromLineIndex(line - 1);
+        var col = Editor.CaretIndex - lineStart + 1;
+        CaretPositionText.Text = $"Ln {line}, Col {col}";
     }
 
     private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -37,9 +71,17 @@ public partial class MainWindow : Window
             FindBox.SelectAll();
             e.Handled = true;
         }
+        else if (e.Key == Key.H && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            Vm.FindBarOpen = true;
+            ReplaceRow.Visibility = Visibility.Visible;
+            FindBox.Focus();
+            e.Handled = true;
+        }
         else if (e.Key == Key.Escape && Vm.FindBarOpen)
         {
             Vm.FindBarOpen = false;
+            ReplaceRow.Visibility = Visibility.Collapsed;
             Editor.Focus();
             e.Handled = true;
         }
@@ -75,6 +117,7 @@ public partial class MainWindow : Window
         else if (e.Key == Key.Escape)
         {
             Vm.FindBarOpen = false;
+            ReplaceRow.Visibility = Visibility.Collapsed;
             Editor.Focus();
             e.Handled = true;
         }
@@ -110,6 +153,66 @@ public partial class MainWindow : Window
 
         Editor.Select(index, query.Length);
         Editor.Focus();
+    }
+
+    private void CloseFind_Click(object sender, RoutedEventArgs e)
+    {
+        Vm.FindBarOpen = false;
+        ReplaceRow.Visibility = Visibility.Collapsed;
+        Editor.Focus();
+    }
+
+    private void Replace_Click(object sender, RoutedEventArgs e)
+    {
+        Vm.FindBarOpen = true;
+        ReplaceRow.Visibility = Visibility.Visible;
+        FindBox.Focus();
+    }
+
+    private void ReplaceOne_Click(object sender, RoutedEventArgs e)
+    {
+        var query = FindBox.Text;
+        if (string.IsNullOrEmpty(query)) return;
+
+        if (Editor.SelectionLength > 0 &&
+            string.Equals(Editor.SelectedText, query, StringComparison.OrdinalIgnoreCase))
+        {
+            var start = Editor.SelectionStart;
+            Editor.SelectedText = ReplaceBox.Text;
+            Editor.Select(start, ReplaceBox.Text.Length);
+        }
+        else
+        {
+            FindNext(1);
+        }
+    }
+
+    private void ReplaceAll_Click(object sender, RoutedEventArgs e)
+    {
+        var query = FindBox.Text;
+        if (string.IsNullOrEmpty(query)) return;
+
+        var replacement = ReplaceBox.Text;
+        var text = Editor.Text;
+        var result = new System.Text.StringBuilder();
+        var pos = 0;
+        var count = 0;
+
+        while (true)
+        {
+            var index = text.IndexOf(query, pos, StringComparison.OrdinalIgnoreCase);
+            if (index < 0)
+            {
+                result.Append(text, pos, text.Length - pos);
+                break;
+            }
+            result.Append(text, pos, index - pos);
+            result.Append(replacement);
+            pos = index + query.Length;
+            count++;
+        }
+
+        if (count > 0) Editor.Text = result.ToString();
     }
 
     private void Minimize_Click(object sender, RoutedEventArgs e) => SystemCommands.MinimizeWindow(this);

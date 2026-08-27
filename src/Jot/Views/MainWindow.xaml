@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="Jot" MinHeight="360" MinWidth="440"
+        Background="{StaticResource BgBrush}" Foreground="{StaticResource TextBrush}"
         WindowStyle="None" AllowsTransparency="False" ResizeMode="CanResize"
         WindowStartupLocation="CenterScreen"
         Closing="Window_Closing" SourceInitialized="Window_SourceInitialized">
@@ -12,7 +13,7 @@
                              CornerRadius="0" UseAeroCaptionButtons="False"/>
     </shell:WindowChrome.WindowChrome>
 
-    <Grid>
+    <Grid Background="{StaticResource BgBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="40"/>
             <RowDefinition Height="*"/>
@@ -34,9 +35,42 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <Button Content="&#xE711;" FontFamily="Segoe MDL2 Assets" Style="{StaticResource IconButton}"
-                            Command="{Binding ToggleFindCommand}" ToolTip="Find (Ctrl+F)"
-                            shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
+                    <Button Content="File" Style="{StaticResource TextMenuButton}" Click="FileMenu_Click"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                        <Button.ContextMenu>
+                            <ContextMenu Style="{StaticResource MinimalContextMenu}" Placement="Bottom"
+                                         DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                <MenuItem Header="New" InputGestureText="Ctrl+N" Style="{StaticResource MinimalMenuItem}" Command="{Binding NewCommand}"/>
+                                <MenuItem Header="Open…" InputGestureText="Ctrl+O" Style="{StaticResource MinimalMenuItem}" Command="{Binding OpenCommand}"/>
+                                <MenuItem Header="Save" InputGestureText="Ctrl+S" Style="{StaticResource MinimalMenuItem}" Command="{Binding SaveCommand}"/>
+                                <MenuItem Header="Save As…" InputGestureText="Ctrl+Shift+S" Style="{StaticResource MinimalMenuItem}" Command="{Binding SaveAsCommand}"/>
+                                <Separator/>
+                                <MenuItem Header="Exit" Style="{StaticResource MinimalMenuItem}" Click="Exit_Click"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+
+                    <Button Content="Edit" Style="{StaticResource TextMenuButton}" Click="EditMenu_Click"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                        <Button.ContextMenu>
+                            <ContextMenu Style="{StaticResource MinimalContextMenu}" Placement="Bottom"
+                                         DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                <MenuItem Header="Undo" InputGestureText="Ctrl+Z" Style="{StaticResource MinimalMenuItem}" Click="Undo_Click"/>
+                                <MenuItem Header="Redo" InputGestureText="Ctrl+Y" Style="{StaticResource MinimalMenuItem}" Click="Redo_Click"/>
+                                <Separator/>
+                                <MenuItem Header="Cut" InputGestureText="Ctrl+X" Style="{StaticResource MinimalMenuItem}" Click="Cut_Click"/>
+                                <MenuItem Header="Copy" InputGestureText="Ctrl+C" Style="{StaticResource MinimalMenuItem}" Click="Copy_Click"/>
+                                <MenuItem Header="Paste" InputGestureText="Ctrl+V" Style="{StaticResource MinimalMenuItem}" Click="Paste_Click"/>
+                                <MenuItem Header="Select All" InputGestureText="Ctrl+A" Style="{StaticResource MinimalMenuItem}" Click="SelectAll_Click"/>
+                                <Separator/>
+                                <MenuItem Header="Find…" InputGestureText="Ctrl+F" Style="{StaticResource MinimalMenuItem}" Command="{Binding ToggleFindCommand}"/>
+                                <MenuItem Header="Replace…" InputGestureText="Ctrl+H" Style="{StaticResource MinimalMenuItem}" Click="Replace_Click"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+
+                    <Rectangle Width="1" Margin="6,10" Fill="{StaticResource BorderBrush}"/>
+
                     <Button Content="A-" Style="{StaticResource IconButton}" Command="{Binding DecreaseFontCommand}"
                             ToolTip="Decrease font size" shell:WindowChrome.IsHitTestVisibleInChrome="True"/>
                     <Button Content="A+" Style="{StaticResource IconButton}" Command="{Binding IncreaseFontCommand}"
@@ -64,20 +98,29 @@
                      Margin="32,24"
                      HorizontalScrollBarVisibility="{Binding HorizontalScrollVisibility}"/>
 
-            <!-- find bar -->
+            <!-- find / replace bar -->
             <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,14,14,0"
                     Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}"
                     BorderThickness="1" CornerRadius="8"
                     Visibility="{Binding FindBarOpen, Converter={StaticResource BoolToVisibilityConverter}}">
-                <StackPanel Orientation="Horizontal" Margin="4">
-                    <TextBox x:Name="FindBox" Width="180" Style="{StaticResource FindTextBox}"
-                             KeyDown="FindBox_KeyDown"/>
-                    <Button Content="&#xE96D;" FontFamily="Segoe MDL2 Assets" FontSize="11" Width="28" Height="28"
-                            Style="{StaticResource IconButton}" Click="FindPrev_Click" ToolTip="Previous"/>
-                    <Button Content="&#xE96E;" FontFamily="Segoe MDL2 Assets" FontSize="11" Width="28" Height="28"
-                            Style="{StaticResource IconButton}" Click="FindNext_Click" ToolTip="Next"/>
-                    <Button Content="&#xE711;" FontFamily="Segoe MDL2 Assets" FontSize="11" Width="28" Height="28"
-                            Style="{StaticResource IconButton}" Command="{Binding ToggleFindCommand}" ToolTip="Close"/>
+                <StackPanel Margin="4">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBox x:Name="FindBox" Width="180" Style="{StaticResource FindTextBox}"
+                                 KeyDown="FindBox_KeyDown"/>
+                        <Button Content="▲" FontSize="10" Width="28" Height="28"
+                                Style="{StaticResource IconButton}" Click="FindPrev_Click" ToolTip="Previous"/>
+                        <Button Content="▼" FontSize="10" Width="28" Height="28"
+                                Style="{StaticResource IconButton}" Click="FindNext_Click" ToolTip="Next"/>
+                        <Button Content="✕" FontSize="10" Width="28" Height="28"
+                                Style="{StaticResource IconButton}" Click="CloseFind_Click" ToolTip="Close (Esc)"/>
+                    </StackPanel>
+                    <StackPanel x:Name="ReplaceRow" Orientation="Horizontal" Margin="0,4,0,0" Visibility="Collapsed">
+                        <TextBox x:Name="ReplaceBox" Width="180" Style="{StaticResource FindTextBox}"/>
+                        <Button Content="One" FontSize="10" Width="40" Height="28"
+                                Style="{StaticResource IconButton}" Click="ReplaceOne_Click" ToolTip="Replace this match"/>
+                        <Button Content="All" FontSize="10" Width="40" Height="28"
+                                Style="{StaticResource IconButton}" Click="ReplaceAll_Click" ToolTip="Replace all matches"/>
+                    </StackPanel>
                 </StackPanel>
             </Border>
         </Grid>
@@ -85,8 +128,12 @@
         <!-- status bar -->
         <Border Grid.Row="2" Background="{StaticResource TitleBarBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
             <Grid Margin="16,0">
-                <TextBlock Text="{Binding WordCountText}" Foreground="{StaticResource TextDimBrush}"
-                           FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                    <TextBlock Text="{Binding WordCountText}" Foreground="{StaticResource TextDimBrush}"
+                               FontSize="11" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="CaretPositionText" Text="Ln 1, Col 1" Foreground="{StaticResource TextDimBrush}"
+                               FontSize="11" VerticalAlignment="Center" Margin="16,0,0,0"/>
+                </StackPanel>
                 <TextBlock Text="{Binding SaveStateText}" Foreground="{StaticResource TextDimBrush}"
                            FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Right"/>
             </Grid>
